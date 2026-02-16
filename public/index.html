@@ -38,17 +38,21 @@
       </button>
 
       <div class="hint">
-        <div class="hint-title">Tips rápidos</div>
-        <ul>
-          <li><code>pi</code>, <code>e</code>, <code>tau</code></li>
-          <li><code>sqrt(9)</code>, <code>sin(pi/2)</code>, <code>log(100)</code>, <code>ln(e)</code></li>
-          <li>En gráfico usá <code>x</code>: <code>sin(x)+x**2</code></li>
-        </ul>
+        <button id="tipsToggle" class="tips-toggle">
+          Tips rápidos ▼
+        </button>
+        <div id="tipsContent" class="tips-content">
+          <ul>
+            ...
+          </ul>
+        </div>
       </div>
+
     </aside>
 
     <main class="main">
       <header class="header">
+        <button id="menuToggle" class="menu-toggle">☰</button>
         <h1 id="title">Estándar</h1>
         <div class="status" id="status">Listo.</div>
       </header>

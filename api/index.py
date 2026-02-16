@@ -56,64 +56,111 @@ _ALLOWED_CONSTS = {
 class SafeEvalError(ValueError):
     pass
 
-
 def _to_number(x: Any) -> float:
     if isinstance(x, (int, float)):
         return float(x)
     raise SafeEvalError("Número inválido")
 
+def numerical_integral(expr: str, a: float, b: float, n: int = 1000) -> float:
+    step = (b - a) / n
+    total = 0.0
+
+    for i in range(n + 1):
+        x = a + i * step
+        weight = 1
+        if i == 0 or i == n:
+            weight = 0.5
+        total += weight * safe_eval(expr, {"x": x})
+
+    return total * step
+
+def numerical_derivative(expr: str, x: float, h: float = 1e-5) -> float:
+    return (
+        safe_eval(expr, {"x": x + h}) -
+        safe_eval(expr, {"x": x - h})
+    ) / (2 * h)
 
 def safe_eval(expr: str, variables: Optional[Dict[str, float]] = None) -> float:
-    """
-    Evalúa expresiones matemáticas de forma segura.
-    Soporta: + - * / // % **, paréntesis, constantes (pi, e) y funciones de _ALLOWED_FUNCS.
-    Variables opcionales: ej. {"x": 2.0}
-    """
     if variables is None:
         variables = {}
+
     try:
         tree = ast.parse(expr, mode="eval")
     except SyntaxError as e:
         raise SafeEvalError("Expresión inválida") from e
 
     def _eval(node: ast.AST) -> float:
+
         if isinstance(node, ast.Expression):
             return _eval(node.body)
 
         if isinstance(node, ast.Constant):
-            # numbers only
             if isinstance(node.value, (int, float)):
                 return float(node.value)
-            raise SafeEvalError("Solo se permiten números")
+            raise SafeEvalError("Solo números permitidos")
 
         if isinstance(node, ast.Name):
             if node.id in variables:
                 return float(variables[node.id])
             if node.id in _ALLOWED_CONSTS:
                 return float(_ALLOWED_CONSTS[node.id])
-            raise SafeEvalError(f"¡ERROR!: {node.id}")
+            raise SafeEvalError(f"Variable inválida: {node.id}")
 
         if isinstance(node, ast.UnaryOp) and type(node.op) in _ALLOWED_UNARYOPS:
             return _ALLOWED_UNARYOPS[type(node.op)](_eval(node.operand))
 
         if isinstance(node, ast.BinOp) and type(node.op) in _ALLOWED_BINOPS:
-            return _ALLOWED_BINOPS[type(node.op)](_eval(node.left), _eval(node.right))
+            return _ALLOWED_BINOPS[type(node.op)](
+                _eval(node.left),
+                _eval(node.right)
+            )
 
         if isinstance(node, ast.Call):
+
+            # -------------------------
+            # DERIVADA
+            # -------------------------
+            if isinstance(node.func, ast.Name) and node.func.id == "der":
+                if len(node.args) != 1:
+                    raise SafeEvalError("der requiere 1 argumento")
+
+                expr_source = ast.unparse(node.args[0])
+                x_value = variables.get("x", 0.0)
+
+                return numerical_derivative(expr_source, x_value)
+
+            # -------------------------
+            # INTEGRAL DEFINIDA
+            # -------------------------
+            if isinstance(node.func, ast.Name) and node.func.id == "int":
+                if len(node.args) != 3:
+                    raise SafeEvalError("int requiere 3 argumentos: int(expr, a, b)")
+
+                expr_source = ast.unparse(node.args[0])
+                a = _eval(node.args[1])
+                b = _eval(node.args[2])
+
+                return numerical_integral(expr_source, a, b)
+
+            # -------------------------
+            # FUNCIONES NORMALES
+            # -------------------------
             if isinstance(node.func, ast.Name) and node.func.id in _ALLOWED_FUNCS:
                 fn = _ALLOWED_FUNCS[node.func.id]
                 args = [_eval(a) for a in node.args]
-                # factorial requires int >= 0
-                if fn in (math.factorial,) and (len(args) != 1 or args[0] < 0 or int(args[0]) != args[0]):
-                    raise SafeEvalError("factorial requiere un entero >= 0")
+
+                if fn in (math.factorial,) and (
+                    len(args) != 1 or args[0] < 0 or int(args[0]) != args[0]
+                ):
+                    raise SafeEvalError("factorial requiere entero >= 0")
+
                 return float(fn(*args))
+
             raise SafeEvalError("Función no permitida")
 
-        # Disallow anything else: attributes, subscripts, lambdas, comprehensions, etc.
         raise SafeEvalError("Operación no permitida")
 
     return float(_eval(tree))
-
 
 # ---------------------------
 # Models
@@ -135,7 +182,7 @@ class CalcRequest(BaseModel):
 
 
 class GraphRequest(BaseModel):
-    expression: str = Field(..., description="Función en x, ej: sin(x) + x**2")
+    expressions: List[str] = Field(..., description="Lista de funciones en x, ej: sin(x) + x**2")
     x_min: float = -10
     x_max: float = 10
     samples: int = 200
@@ -251,29 +298,37 @@ def calculate(req: CalcRequest):
 
 @app.post("/api/graph")
 def graph(req: GraphRequest):
-    # generate y for x in range
+
     if req.samples < 10 or req.samples > 2000:
         return {"error": "samples debe estar entre 10 y 2000"}
+
     if req.x_max <= req.x_min:
         return {"error": "x_max debe ser mayor que x_min"}
 
-    xs: List[float] = []
-    ys: List[Optional[float]] = []
     step = (req.x_max - req.x_min) / (req.samples - 1)
 
-    for i in range(req.samples):
-        x = req.x_min + step * i
-        xs.append(x)
-        try:
-            y = safe_eval(req.expression, variables={"x": x})
-            # guard against huge numbers that break charts
-            if abs(y) > 1e12:
-                ys.append(None)
-            else:
-                ys.append(y)
-        except SafeEvalError:
-            ys.append(None)
-        except Exception:
-            ys.append(None)
+    xs = [req.x_min + step * i for i in range(req.samples)]
 
-    return {"x": xs, "y": ys}
+    datasets = []
+
+    for expr in req.expressions:
+
+        ys: List[Optional[float]] = []
+
+        for x in xs:
+            try:
+                y = safe_eval(expr, variables={"x": x})
+                if abs(y) > 1e12:
+                    ys.append(None)
+                else:
+                    ys.append(y)
+            except Exception:
+                ys.append(None)
+
+        datasets.append({
+            "expression": expr,
+            "x": xs,
+            "y": ys
+        })
+
+    return {"datasets": datasets}

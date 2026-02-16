@@ -303,3 +303,26 @@ body{
   border:1px solid var(--border);
   font-size:7px;
 }
+
+/* ===== Fix iOS date input overflow ===== */
+
+input[type="date"]{
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+}
+
+/* elimina bordes internos raros */
+input[type="date"]::-webkit-datetime-edit{
+  color: var(--text);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator{
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+/* evita que sobresalga */
+input[type="date"]{
+  overflow: hidden;
+}

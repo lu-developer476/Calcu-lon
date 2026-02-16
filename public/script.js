@@ -316,6 +316,10 @@ $("btn-date-clear")?.addEventListener("click", () => {
   setStatus("Listo.");
 });
 
+/* ============================= */
+/* Tips aleatorios */
+/* ============================= */
+
 const tipsList = [
 "Multiplicar por 10 → agregar un cero.",
 "Multiplicar por 5 → multiplicar por 10 y dividir por 2.",
@@ -330,46 +334,48 @@ const tipsList = [
 "10% de un número = mover la coma un lugar.",
 "Para calcular 15%, sumá 10% + 5%.",
 "Si ax = b → x = b/a.",
-"En una ecuación, lo que hacés de un lado, hacelo del otro.",
 "Despejar es aislar la variable.",
-"Un sistema puede tener 1, infinitas o ninguna solución.",
 "Una función lineal tiene forma f(x)=mx+b.",
-"Si m > 0 la recta crece.",
-"Si m < 0 la recta decrece.",
-"Una parábola abre hacia arriba si a > 0.",
-"El vértice de ax²+bx+c está en -b/(2a).",
+"sin²(x)+cos²(x)=1.",
+"√(a²)=|a|.",
 "log(a·b)=log(a)+log(b).",
 "log(a/b)=log(a)-log(b).",
 "ln(e)=1.",
-"sin²(x)+cos²(x)=1.",
-"Si A → B no implica que B → A.",
-"La negación de (A ∧ B) es (¬A ∨ ¬B).",
-"La negación de (A ∨ B) es (¬A ∧ ¬B).",
-"Un contraejemplo invalida una afirmación general.",
-"Correlación no implica causalidad.",
-"0 es número par.",
-"√(a²)=|a|.",
-"Las fracciones son divisiones pendientes.",
-"f(x)=x² es simétrica respecto del eje Y.",
-"f(-x)=f(x) → función par.",
-"f(-x)=-f(x) → función impar.",
-"log(x) no está definido para x ≤ 0.",
-"e^x nunca es negativo.",
 "Multiplicar por 9 → multiplicar por 10 y restar el número.",
-"25% es la cuarta parte.",
-"50% es la mitad.",
-"75% es 3/4.",
+"25% es la cuarta parte de un entero.",
+"50% es la mitad de un entero.",
+"75% son las 3/4 partes de un entero.",
 "Siempre estimá antes de validar un resultado.",
 "Siempre simplificá antes de operar."
 ];
 
-const tipsContainer = document.querySelector("#tipsContent ul");
+const tipText = document.getElementById("tipText");
+const newTipBtn = document.getElementById("newTipBtn");
+const tipsToggle = document.getElementById("tipsToggle");
+const tipsContent = document.getElementById("tipsContent");
 
-if (tipsContainer) {
-  tipsContainer.innerHTML = "";
-  tipsList.forEach(tip => {
-    const li = document.createElement("li");
-    li.textContent = tip;
-    tipsContainer.appendChild(li);
+function getRandomTip(){
+  return tipsList[Math.floor(Math.random() * tipsList.length)];
+}
+
+function showNewTip(){
+  tipText.innerText = getRandomTip();
+}
+
+if (tipsToggle) {
+  tipsToggle.addEventListener("click", () => {
+    tipsContent.classList.toggle("hidden");
+    tipsToggle.innerText =
+      tipsContent.classList.contains("hidden")
+        ? "Tips rápidos ▶"
+        : "Tips rápidos ▼";
+
+    if (!tipsContent.classList.contains("hidden")) {
+      showNewTip();
+    }
   });
+}
+
+if (newTipBtn) {
+  newTipBtn.addEventListener("click", showNewTip);
 }

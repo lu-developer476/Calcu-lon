@@ -135,7 +135,7 @@ body{
 
 .status{
   color:var(--muted);
-  font-size:14px;
+  font-size:10px;
 }
 
 .panel{

@@ -28,12 +28,14 @@ _ALLOWED_UNARYOPS = {
     ast.USub: lambda a: -a,
 }
 
+ANGLE_MODE = "RAD"  # "RAD" o "DEG"
+
 _ALLOWED_FUNCS = {
     # scientific
     "sqrt": math.sqrt,
-    "sin": math.sin,
-    "cos": math.cos,
-    "tan": math.tan,
+    "sin": lambda x: math.sin(math.radians(x)) if ANGLE_MODE == "DEG" else math.sin(x),
+    "cos": lambda x: math.cos(math.radians(x)) if ANGLE_MODE == "DEG" else math.cos(x),
+    "tan": lambda x: math.tan(math.radians(x)) if ANGLE_MODE == "DEG" else math.tan(x),
     "asin": math.asin,
     "acos": math.acos,
     "atan": math.atan,
@@ -45,6 +47,7 @@ _ALLOWED_FUNCS = {
     "round": round,
     "fact": math.factorial,
     "factorial": math.factorial,
+    "exp": math.exp,
 }
 
 _ALLOWED_CONSTS = {
@@ -79,6 +82,13 @@ def numerical_derivative(expr: str, x: float, h: float = 1e-5) -> float:
         safe_eval(expr, {"x": x + h}) -
         safe_eval(expr, {"x": x - h})
     ) / (2 * h)
+
+def format_result(value: float) -> Union[float, str]:
+    if value == 0:
+        return 0
+    if abs(value) >= 1e6 or abs(value) <= 1e-6:
+        return f"{value:.6e}"
+    return value
 
 def safe_eval(expr: str, variables: Optional[Dict[str, float]] = None) -> float:
     if variables is None:
@@ -135,15 +145,21 @@ def safe_eval(expr: str, variables: Optional[Dict[str, float]] = None) -> float:
 
             # INTEGRAL DEFINIDA
             if isinstance(node.func, ast.Name) and node.func.id == "int":
-
-                if len(node.args) != 3:
-                    raise SafeEvalError("int requiere 3 argumentos: int(expr, a, b)")
-
+            
+                if len(node.args) not in (3, 4):
+                    raise SafeEvalError("int requiere 3 o 4 argumentos: int(expr, a, b, n)")
+            
                 expr_source = ast.unparse(node.args[0])
                 a = _eval(node.args[1])
                 b = _eval(node.args[2])
-
-                return numerical_integral(expr_source, a, b)
+            
+                n = 1000
+                if len(node.args) == 4:
+                    n = int(_eval(node.args[3]))
+                    if n < 10 or n > 100000:
+                        raise SafeEvalError("n debe estar entre 10 y 100000")
+            
+                return numerical_integral(expr_source, a, b, n)
 
             # FUNCIONES NORMALES
             if isinstance(node.func, ast.Name) and node.func.id in _ALLOWED_FUNCS:
@@ -196,6 +212,14 @@ class GraphRequest(BaseModel):
 def health():
     return {"ok": True}
 
+@app.post("/api/angle-mode")
+def set_angle_mode(mode: str):
+    global ANGLE_MODE
+    mode = mode.upper()
+    if mode not in ("RAD", "DEG"):
+        return {"error": "Modo inválido"}
+    ANGLE_MODE = mode
+    return {"mode": ANGLE_MODE}
 
 @app.post("/api/calculate")
 def calculate(req: CalcRequest):
@@ -206,7 +230,7 @@ def calculate(req: CalcRequest):
             return {"error": "Falta la expresión"}
         try:
             result = safe_eval(req.expression)
-            return {"result": result}
+            return {"result": format_result(result)}
         except SafeEvalError as e:
             return {"error": str(e)}
 
@@ -215,7 +239,7 @@ def calculate(req: CalcRequest):
             return {"error": "Falta la expresión (ej: sqrt(9), sin(pi/2), log(100))"}
         try:
             result = safe_eval(req.expression)
-            return {"result": result}
+            return {"result": format_result(result)}
         except SafeEvalError as e:
             return {"error": str(e)}
 

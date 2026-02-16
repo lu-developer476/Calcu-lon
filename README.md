@@ -1,4 +1,4 @@
-# Calculadora Pro (Python + HTML + Vercel)
+# Calcu-lon (Python + HTML + Vercel)
 
 Calculadora web con 5 modos:
 - Estándar
@@ -42,8 +42,8 @@ Abrí `public/index.html` con Live Server (VS Code) o servilo con un server est�
 > Nota: en Vercel, el frontend llama a `/api/...` directamente.
 
 ## Deploy en Vercel
-1. Subí el repo a GitHub
-2. Importalo desde Vercel
+1. Subir el repositorio a GitHub
+2. Importar desde Vercel
 3. Deploy
 
 ## Endpoints
@@ -52,5 +52,3 @@ Abrí `public/index.html` con Live Server (VS Code) o servilo con un server est�
 - `GET /api/health`
 
 ---
-
-Hecho para que puedas extenderlo fácil (más funciones científicas, más operaciones bitwise, más herramientas de fecha, etc.).

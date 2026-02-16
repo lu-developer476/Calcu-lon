@@ -27,7 +27,7 @@ function setTitle(mode) {
     standard: "Estándar",
     scientific: "Científica",
     graph: "Gráfica",
-    programmer: "Programador",
+    programmer: "Programadora",
     date: "Cálculo de fechas",
   };
   $("title").innerText = titles[mode] ?? mode;

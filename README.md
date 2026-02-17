@@ -1,4 +1,4 @@
-# Calcu-lon (Python + HTML + Vercel)
+# Calcu-len (Python + HTML + Vercel)
 
 Calculadora web con 5 modos:
 - Estándar

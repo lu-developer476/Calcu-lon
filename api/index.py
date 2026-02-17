@@ -370,3 +370,6 @@ def graph(req: GraphRequest):
         })
 
     return {"datasets": datasets}
+
+# Vercel handler
+handler = app

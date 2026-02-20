@@ -65,7 +65,7 @@ _ALLOWED_CONSTS = {
     "pi": math.pi,
     "e": math.e,
     "tau": math.tau,
-    "j": 1j,        # 👈 unidad imaginaria
+    "j": 1j,        # 👈 Unidad Imaginaria
 }
 
 class SafeEvalError(ValueError):
